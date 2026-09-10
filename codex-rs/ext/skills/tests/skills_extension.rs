@@ -1553,12 +1553,12 @@ async fn extreme_budget_pressure_removes_descriptions_before_omitting_entries() 
     let warning = event_rx.try_recv()?.into_warning();
     assert_eq!(warning.thread_id, "thread");
     assert_eq!(warning.turn_id.as_deref(), Some("turn-1"));
-    assert_eq!(
-        warning.message,
-        format!(
+    assert!(
+        warning.message.starts_with(&format!(
             "Exceeded skills context budget. All skill descriptions were removed and {omitted_count} additional skills were not included in the model-visible skills list."
-        )
+        ))
     );
+    assert!(warning.message.contains("[risk="));
     assert!(event_rx.try_recv().is_err());
 
     Ok(())
@@ -2181,8 +2181,9 @@ async fn model_context_window_scales_executor_and_orchestrator_catalogs() -> Tes
         assert!(
             warning
                 .message
-                .ends_with("additional skills were not included in the model-visible skills list.")
+                .contains("additional skills were not included in the model-visible skills list.")
         );
+        assert!(warning.message.contains("[risk="));
     }
     assert!(
         executor_section

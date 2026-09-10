@@ -89,6 +89,37 @@ pub(crate) struct SkillRenderReport {
     pub(crate) truncated_description_count: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SkillRenderRisk {
+    Low,
+    Medium,
+    High,
+}
+
+impl SkillRenderRisk {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+        }
+    }
+
+    fn remediation_hint(self) -> &'static str {
+        match self {
+            Self::High => {
+                "Action: disable unused skills or plugin sources in skills config first; otherwise, raise the skills context budget."
+            }
+            Self::Medium => {
+                "Action: shorten long `SKILL.md` descriptions, add `short_description`, or disable low-signal skills."
+            }
+            Self::Low => {
+                "Action: trim the largest truncated descriptions; this should mostly be metadata hygiene."
+            }
+        }
+    }
+}
+
 impl SkillRenderReport {
     pub(crate) fn warning_message(&self) -> Option<String> {
         if self.omitted_count > 0 {
@@ -102,15 +133,49 @@ impl SkillRenderReport {
             } else {
                 "were"
             };
-            return Some(format!(
+            return Some(self.risk_annotated_warning(format!(
                 "{} {} additional {} {} not included in the model-visible skills list.",
                 SKILL_DESCRIPTIONS_REMOVED_WARNING_PREFIX, self.omitted_count, skill_word, verb
-            ));
+            )));
         }
 
         (self.average_truncated_description_chars()
             > SKILL_DESCRIPTION_TRUNCATION_WARNING_THRESHOLD_CHARS)
-            .then(|| SKILL_DESCRIPTION_TRUNCATED_WARNING.to_string())
+            .then(|| self.risk_annotated_warning(SKILL_DESCRIPTION_TRUNCATED_WARNING.to_string()))
+    }
+
+    fn risk_annotated_warning(&self, base: String) -> String {
+        if let Some(risk) = self.risk_level() {
+            format!(
+                "{base} [risk={}] {}",
+                risk.as_str(),
+                risk.remediation_hint()
+            )
+        } else {
+            base
+        }
+    }
+
+    fn risk_level(&self) -> Option<SkillRenderRisk> {
+        if self.omitted_count > 0 {
+            let high_threshold = (self.total_count.saturating_mul(50)) / 100;
+            if self.included_count == 0 || self.omitted_count > high_threshold {
+                return Some(SkillRenderRisk::High);
+            }
+            if self.omitted_count >= 1 {
+                return Some(SkillRenderRisk::Medium);
+            }
+        }
+
+        if self.truncated_description_count > 0 {
+            if self.total_count > 30 || self.average_truncated_description_chars() > 200 {
+                Some(SkillRenderRisk::Medium)
+            } else {
+                Some(SkillRenderRisk::Low)
+            }
+        } else {
+            None
+        }
     }
 
     pub(crate) fn average_truncated_description_chars(&self) -> usize {

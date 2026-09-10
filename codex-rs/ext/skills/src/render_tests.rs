@@ -1012,7 +1012,7 @@ fn catalog_emits_omission_marker_when_every_minimum_skill_line_exceeds_budget() 
     assert_eq!(
         expected_report.warning_message(),
         Some(
-            "Exceeded skills context budget. All skill descriptions were removed and 1 additional skill was not included in the model-visible skills list."
+            "Exceeded skills context budget. All skill descriptions were removed and 1 additional skill was not included in the model-visible skills list. [risk=high] Action: disable unused skills or plugin sources in skills config first; otherwise, raise the skills context budget."
                 .to_string()
         )
     );
@@ -1118,7 +1118,7 @@ fn substantial_description_shortening_emits_warning() {
     assert_eq!(
         render.report.warning_message(),
         Some(
-            "Skill descriptions were shortened to fit the skills context budget. Codex can still see every skill, but some descriptions are shorter. Disable unused skills or plugins to leave more room for the rest."
+            "Skill descriptions were shortened to fit the skills context budget. Codex can still see every skill, but some descriptions are shorter. Disable unused skills or plugins to leave more room for the rest. [risk=low] Action: trim the largest truncated descriptions; this should mostly be metadata hygiene."
                 .to_string()
         )
     );
@@ -1141,6 +1141,9 @@ fn substantial_description_shortening_warning_starts_above_threshold() {
     };
     assert_eq!(
         report_above_threshold.warning_message(),
-        Some(SKILL_DESCRIPTION_TRUNCATED_WARNING.to_string())
+        Some(
+            "Skill descriptions were shortened to fit the skills context budget. Codex can still see every skill, but some descriptions are shorter. Disable unused skills or plugins to leave more room for the rest. [risk=low] Action: trim the largest truncated descriptions; this should mostly be metadata hygiene."
+                .to_string()
+        )
     );
 }
