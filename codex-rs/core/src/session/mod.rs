@@ -4734,6 +4734,18 @@ impl Session {
         self.services.hooks.load_full()
     }
 
+    pub(crate) async fn list_hooks(&self) -> codex_hooks::HookListOutcome {
+        let config = self.get_config().await;
+        let environments = self.services.turn_environments.snapshot().await;
+        let hooks_config = build_hooks_config(
+            config.as_ref(),
+            self.services.plugins_manager.as_ref(),
+            environments.single_local_environment(),
+        )
+        .await;
+        codex_hooks::list_hooks(hooks_config)
+    }
+
     pub(crate) fn user_shell(&self) -> Arc<shell::Shell> {
         Arc::clone(&self.services.user_shell)
     }

@@ -444,11 +444,11 @@ impl HooksBrowserView {
                 };
                 let row = match hook.trust_status {
                     HookTrustStatus::Modified => {
-                        format!("[{marker}] {} · modified", hook_title(idx))
+                        format!("[{marker}] {} · modified", hook_title(hook))
                     }
-                    HookTrustStatus::Untrusted => format!("[{marker}] {} · new", hook_title(idx)),
+                    HookTrustStatus::Untrusted => format!("[{marker}] {} · new", hook_title(hook)),
                     HookTrustStatus::Managed | HookTrustStatus::Trusted => {
-                        format!("[{marker}] {}", hook_title(idx))
+                        format!("[{marker}] {}", hook_title(hook))
                     }
                 };
                 let mut line = Line::from(row);
@@ -800,8 +800,13 @@ fn event_description(event_name: HookEventName) -> &'static str {
     }
 }
 
-fn hook_title(idx: usize) -> String {
-    format!("Hook {}", idx + 1)
+fn hook_title(hook: &HookMetadata) -> String {
+    hook.status_message
+        .as_deref()
+        .map(str::trim)
+        .filter(|status_message| !status_message.is_empty())
+        .unwrap_or("Unnamed hook")
+        .to_string()
 }
 
 fn hook_source_summary(hook: &HookMetadata) -> String {
